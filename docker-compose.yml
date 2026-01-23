@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: review-summarizer-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-review_summarizer}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: review-summarizer-app
+    environment:
+      APP_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-review_summarizer}
+      
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-review_summarizer}
+      
+      APP_API_HOST: 0.0.0.0
+      APP_API_PORT: 8000
+      
+      APP_STREAMLIT_PORT: 8501
+      
+      APP_LOG_LEVEL: ${APP_LOG_LEVEL:-INFO}
+      
+      # OpenAI
+      APP_OPENAI_API_KEY: ${APP_OPENAI_API_KEY:-}
+      APP_OPENAI_MODEL: ${APP_OPENAI_MODEL:-gpt-4.1}
+      APP_OPENAI_MODEL_MINI: ${APP_OPENAI_MODEL_MINI:-gpt-4.1-mini}
+    ports:
+      - "${APP_STREAMLIT_PORT:-8501}:8501"
+      - "${APP_API_PORT:-8000}:8000"
+    depends_on:
+      - db
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
