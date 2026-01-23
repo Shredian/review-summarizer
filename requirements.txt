@@ -1,0 +1,35 @@
+# Web framework
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+
+# Database
+sqlalchemy[asyncio]==2.0.36
+asyncpg==0.30.0
+alembic==1.14.1
+
+# Data validation
+pydantic==2.10.5
+pydantic-settings==2.7.1
+
+# Dependency Injection
+dependency-injector==4.45.0
+
+# HTTP client
+httpx==0.28.1
+
+# UI
+streamlit==1.41.1
+
+# Logging
+loguru==0.7.3
+
+# Utils
+python-dotenv==1.0.1
+
+# LLM / LangChain
+langchain==0.3.14
+langchain-openai==0.3.0
+
+# NLP / Text processing
+spacy==3.8.3
+thefuzz==0.22.1
