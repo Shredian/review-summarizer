@@ -35,6 +35,10 @@ class BaseSummarizationMethod(ABC):
         """Выполняет суммаризацию отзывов."""
         pass
 
+    async def persist_artifacts(self, summary: Summary) -> None:
+        """Опциональный пост-процессинг после сохранения Summary в БД."""
+        return None
+
     def get_info(self) -> Dict[str, Any]:
         return {
             "code": self.code,

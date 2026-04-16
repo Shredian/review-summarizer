@@ -2,9 +2,12 @@
 
 import re
 import string
-from typing import Optional
+from typing import List, Optional, Tuple, TYPE_CHECKING
 
 from src.infrastructure.services.summarization.config import STOP_WORDS
+
+if TYPE_CHECKING:
+    from src.domain.models.review import Review
 
 _nlp = None
 
@@ -92,3 +95,54 @@ def is_review_useful(text: str) -> bool:
 
 def has_punctuation(phrase: str) -> bool:
     return bool(re.search(r"[{}]".format(re.escape(string.punctuation)), phrase))
+
+
+def split_sentences(text: str) -> List[str]:
+    """Разбивает текст на предложения по знакам препинания .!?"""
+    if not text or not text.strip():
+        return []
+    sentences = re.split(r"[.!?]+", text)
+    return [s.strip() for s in sentences if s.strip()]
+
+
+def get_review_sentences_with_context(review: "Review") -> List[Tuple[str, Optional[str]]]:
+    """Извлекает предложения из отзыва с указанием тональности.
+
+    Returns:
+        Список кортежей (предложение, тональность).
+        Тональность: "positive" | "negative" | "neutral" | None
+    """
+    result: List[Tuple[str, Optional[str]]] = []
+
+    def _sentiment_from_rating(rating: Optional[float]) -> Optional[str]:
+        if rating is None:
+            return "neutral"
+        if rating >= 4:
+            return "positive"
+        if rating <= 2:
+            return "negative"
+        return "neutral"
+
+    comment_sentiment = _sentiment_from_rating(review.rating)
+
+    if review.plus:
+        for sent in split_sentences(review.plus):
+            if sent:
+                result.append((sent, "positive"))
+
+    if review.minus:
+        for sent in split_sentences(review.minus):
+            if sent:
+                result.append((sent, "negative"))
+
+    if review.comment:
+        for sent in split_sentences(review.comment):
+            if sent:
+                result.append((sent, comment_sentiment))
+
+    if review.title:
+        for sent in split_sentences(review.title):
+            if sent:
+                result.append((sent, comment_sentiment))
+
+    return result

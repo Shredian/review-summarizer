@@ -55,6 +55,9 @@ class SummaryApplication:
         
         summary_id = await self.summary_repository.create(summary)
         summary.id = summary_id
+
+        method = self.summarization_service.get_method(method_code)
+        await method.persist_artifacts(summary)
         
         duration = (datetime.now() - start_time).total_seconds()
         logger.info(f"Суммаризация завершена за {duration:.2f} сек, ID: {summary_id}")

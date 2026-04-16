@@ -11,6 +11,10 @@ root_path = Path(__file__).parent.parent.parent.parent.parent
 sys.path.append(str(root_path))
 
 from src.container import Container
+from src.presentation.streamlit.aspect_evidence_summarization_params_ui import (
+    ASPECT_EVIDENCE_GUIDED_METHOD_CODE,
+    render_aspect_evidence_guided_params,
+)
 from src.presentation.streamlit.utils.async_utils import run_async
 
 
@@ -105,28 +109,33 @@ try:
                 st.caption(method_info['description'])
     
     with col2:
-        st.markdown("**Параметры метода (JSON)**")
-        
-        # Предустановленные параметры
-        default_params = {
-            "output_type": "structured",  # "structured" или "overall"
-        }
-        
-        params_json = st.text_area(
-            "Параметры",
-            value=json.dumps(default_params, indent=2, ensure_ascii=False),
-            height=150,
-            help="Параметры передаются методу суммаризации. output_type: 'structured' (pros/cons/neutral) или 'overall' (единый текст)",
-        )
+        if selected_method == ASPECT_EVIDENCE_GUIDED_METHOD_CODE:
+            params_for_run = render_aspect_evidence_guided_params()
+            params_json = None
+        else:
+            st.markdown("**Параметры метода (JSON)**")
+            default_params = {
+                "output_type": "structured",
+            }
+            params_json = st.text_area(
+                "Параметры",
+                value=json.dumps(default_params, indent=2, ensure_ascii=False),
+                height=150,
+                help="Параметры передаются методу суммаризации. output_type: 'structured' (pros/cons/neutral) или 'overall' (единый текст)",
+            )
+            params_for_run = None
     
     st.markdown("---")
     
     # Кнопка генерации
     if st.button("🚀 Сгенерировать суммаризацию", type="primary", use_container_width=True):
         try:
-            # Парсим параметры
+            # Параметры: форма AEG или JSON для остальных методов
             try:
-                params = json.loads(params_json) if params_json.strip() else {}
+                if selected_method == ASPECT_EVIDENCE_GUIDED_METHOD_CODE:
+                    params = params_for_run if params_for_run is not None else {}
+                else:
+                    params = json.loads(params_json) if params_json and params_json.strip() else {}
             except json.JSONDecodeError as e:
                 st.error(f"Ошибка в JSON параметрах: {e}")
                 st.stop()

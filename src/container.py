@@ -7,11 +7,19 @@ from src.infrastructure.db.repositories.product_repository import ProductReposit
 from src.infrastructure.db.repositories.user_repository import UserRepository
 from src.infrastructure.db.repositories.review_repository import ReviewRepository
 from src.infrastructure.db.repositories.summary_repository import SummaryRepository
+from src.infrastructure.db.repositories.aspect_mention_repository import AspectMentionRepository
+from src.infrastructure.db.repositories.aspect_cluster_repository import AspectClusterRepository
+from src.infrastructure.db.repositories.summary_evidence_repository import SummaryEvidenceRepository
+from src.infrastructure.db.repositories.summary_plan_repository import SummaryPlanRepository
 
 from src.infrastructure.clients.openai_client import OpenAIClient
 
 from src.infrastructure.services.summarization.stub_method import StubSummarizationMethod
 from src.infrastructure.services.summarization.llm_method import LLMSummarizationMethod
+from src.infrastructure.services.summarization.aspect_method import AspectSummarizationMethod
+from src.infrastructure.services.summarization.aspect_evidence_guided_method import (
+    AspectEvidenceGuidedSummarizationMethod,
+)
 
 from src.domain.services.summarization_service import SummarizationService
 
@@ -59,6 +67,26 @@ class Container(containers.DeclarativeContainer):
         session_factory=db_session_factory,
     )
 
+    aspect_mention_repository = providers.Factory(
+        AspectMentionRepository,
+        session_factory=db_session_factory,
+    )
+
+    aspect_cluster_repository = providers.Factory(
+        AspectClusterRepository,
+        session_factory=db_session_factory,
+    )
+
+    summary_evidence_repository = providers.Factory(
+        SummaryEvidenceRepository,
+        session_factory=db_session_factory,
+    )
+
+    summary_plan_repository = providers.Factory(
+        SummaryPlanRepository,
+        session_factory=db_session_factory,
+    )
+
     openai_client = providers.Singleton(
         OpenAIClient,
         api_key=CONFIG.openai_api_key,
@@ -81,9 +109,26 @@ class Container(containers.DeclarativeContainer):
         openai_client_mini=openai_client_mini,
     )
 
+    aspect_summarization_method = providers.Singleton(
+        AspectSummarizationMethod,
+        openai_client=openai_client,
+        openai_client_mini=openai_client_mini,
+    )
+
+    aspect_evidence_guided_summarization_method = providers.Singleton(
+        AspectEvidenceGuidedSummarizationMethod,
+        aspect_mention_repository=aspect_mention_repository,
+        aspect_cluster_repository=aspect_cluster_repository,
+        summary_evidence_repository=summary_evidence_repository,
+        summary_plan_repository=summary_plan_repository,
+        openai_client=openai_client_mini,
+    )
+
     summarization_methods = providers.Dict(
         stub=stub_summarization_method,
         llm=llm_summarization_method,
+        aspect=aspect_summarization_method,
+        aspect_evidence_guided_v1=aspect_evidence_guided_summarization_method,
     )
 
     summarization_service = providers.Factory(

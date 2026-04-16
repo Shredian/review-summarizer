@@ -6,6 +6,7 @@ class AppConfig(BaseSettings):
         env_prefix="APP_",
         env_file=".env",
         env_file_encoding="utf-8",
+        extra="ignore",
     )
 
     database_url: str = "postgresql+asyncpg://user:password@localhost:5432/review_summarizer"

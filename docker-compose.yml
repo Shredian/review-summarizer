@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:16-alpine
@@ -17,9 +15,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: review-summarizer-app
+      # Полный образ: KeyBERT + sentence-transformers (INSTALL_RESEARCH=1 по умолчанию в Dockerfile).
+      # Лёгкий образ без torch: args: { INSTALL_RESEARCH: "0" }
+    container_name: review-summarizer-api
     environment:
       APP_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-review_summarizer}
+      APP_MODE: api
       
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
@@ -28,17 +29,38 @@ services:
       APP_API_HOST: 0.0.0.0
       APP_API_PORT: 8000
       
-      APP_STREAMLIT_PORT: 8501
+      APP_STREAMLIT_PORT: ${APP_STREAMLIT_PORT:-8501}
       
       APP_LOG_LEVEL: ${APP_LOG_LEVEL:-INFO}
       
-      # OpenAI
+      # OpenAI (для LLM-слоя aspect_evidence_guided: задайте ключ и в params API включите enable_llm_refinement)
+      APP_OPENAI_API_KEY: ${APP_OPENAI_API_KEY:-}
+      APP_OPENAI_MODEL: ${APP_OPENAI_MODEL:-gpt-4.1}
+      APP_OPENAI_MODEL_MINI: ${APP_OPENAI_MODEL_MINI:-gpt-4.1-mini}
+    ports:
+      - "${APP_API_PORT:-8000}:8000"
+    depends_on:
+      - db
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # см. сервис app: INSTALL_RESEARCH для образа без torch
+    container_name: review-summarizer-app
+    environment:
+      APP_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-review_summarizer}
+      APP_MODE: streamlit
+      APP_STREAMLIT_PORT: ${APP_STREAMLIT_PORT:-8501}
+      APP_LOG_LEVEL: ${APP_LOG_LEVEL:-INFO}
       APP_OPENAI_API_KEY: ${APP_OPENAI_API_KEY:-}
       APP_OPENAI_MODEL: ${APP_OPENAI_MODEL:-gpt-4.1}
       APP_OPENAI_MODEL_MINI: ${APP_OPENAI_MODEL_MINI:-gpt-4.1-mini}
     ports:
       - "${APP_STREAMLIT_PORT:-8501}:8501"
-      - "${APP_API_PORT:-8000}:8000"
     depends_on:
       - db
     volumes:
