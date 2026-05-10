@@ -19,17 +19,27 @@ _EMB_CUSTOM_KEY = "aeg_emb_custom_text"
 _PROFILE_LABELS = ("Стандарт", "Максимум качества (KeyBERT + LLM)", "Без ML (шаблон, быстрее)")
 
 _EMBEDDING_PRESETS: list[tuple[str, str]] = [
-    ("paraphrase-multilingual-MiniLM-L12-v2 (рекомендуется)", "paraphrase-multilingual-MiniLM-L12-v2"),
+    (
+        "paraphrase-multilingual-MiniLM-L12-v2 (рекомендуется)",
+        "paraphrase-multilingual-MiniLM-L12-v2",
+    ),
     ("distiluse-base-multilingual-cased-v2", "distiluse-base-multilingual-cased-v2"),
-    ("paraphrase-multilingual-mpnet-base-v2 (точнее, тяжелее)", "paraphrase-multilingual-mpnet-base-v2"),
+    (
+        "paraphrase-multilingual-mpnet-base-v2 (точнее, тяжелее)",
+        "paraphrase-multilingual-mpnet-base-v2",
+    ),
 ]
 
 
 def _defaults_for_profile(label: str) -> AspectEvidenceGuidedParams:
     if label == _PROFILE_LABELS[1]:
-        return AspectEvidenceGuidedParams(enable_keybert_refinement=True, enable_llm_refinement=True)
+        return AspectEvidenceGuidedParams(
+            enable_keybert_refinement=True, enable_llm_refinement=True
+        )
     if label == _PROFILE_LABELS[2]:
-        return AspectEvidenceGuidedParams(enable_keybert_refinement=False, enable_llm_refinement=False)
+        return AspectEvidenceGuidedParams(
+            enable_keybert_refinement=False, enable_llm_refinement=False
+        )
     return AspectEvidenceGuidedParams()
 
 
@@ -68,7 +78,9 @@ def _on_profile_change() -> None:
 
 def _embedding_model_value() -> str:
     if st.session_state[_EMB_SOURCE_KEY] == "Своя (Hugging Face id)":
-        return (st.session_state.get(_EMB_CUSTOM_KEY) or "").strip() or AspectEvidenceGuidedParams().embedding_model_name
+        return (
+            st.session_state.get(_EMB_CUSTOM_KEY) or ""
+        ).strip() or AspectEvidenceGuidedParams().embedding_model_name
     return st.session_state[_EMB_LIST_KEY]
 
 
@@ -145,8 +157,20 @@ def render_aspect_evidence_guided_params() -> dict:
         )
 
     with st.expander("Веса скоринга (0–1)", expanded=False):
-        st.slider("Превалентность (`prevalence_weight`)", 0.0, 1.0, 0.05, key=_SESSION_PREFIX + "prevalence_weight")
-        st.slider("Полярность (`polarity_weight`)", 0.0, 1.0, 0.05, key=_SESSION_PREFIX + "polarity_weight")
+        st.slider(
+            "Превалентность (`prevalence_weight`)",
+            0.0,
+            1.0,
+            0.05,
+            key=_SESSION_PREFIX + "prevalence_weight",
+        )
+        st.slider(
+            "Полярность (`polarity_weight`)",
+            0.0,
+            1.0,
+            0.05,
+            key=_SESSION_PREFIX + "polarity_weight",
+        )
         st.slider(
             "Информативность (`informativeness_weight`)",
             0.0,
@@ -154,8 +178,16 @@ def render_aspect_evidence_guided_params() -> dict:
             0.05,
             key=_SESSION_PREFIX + "informativeness_weight",
         )
-        st.slider("Разнообразие (`diversity_weight`)", 0.0, 1.0, 0.05, key=_SESSION_PREFIX + "diversity_weight")
-        st.slider("Бонус редкости (`rarity_bonus`)", 0.0, 1.0, 0.05, key=_SESSION_PREFIX + "rarity_bonus")
+        st.slider(
+            "Разнообразие (`diversity_weight`)",
+            0.0,
+            1.0,
+            0.05,
+            key=_SESSION_PREFIX + "diversity_weight",
+        )
+        st.slider(
+            "Бонус редкости (`rarity_bonus`)", 0.0, 1.0, 0.05, key=_SESSION_PREFIX + "rarity_bonus"
+        )
 
     with st.expander("Эмбеддинги и LLM", expanded=True):
         st.radio(
@@ -168,7 +200,9 @@ def render_aspect_evidence_guided_params() -> dict:
             st.selectbox(
                 "Предобученная модель",
                 options=[p[1] for p in _EMBEDDING_PRESETS],
-                format_func=lambda mid: next(l for l, m in _EMBEDDING_PRESETS if m == mid),
+                format_func=lambda mid: next(
+                    lbl for lbl, model_id in _EMBEDDING_PRESETS if model_id == mid
+                ),
                 key=_EMB_LIST_KEY,
             )
         else:
@@ -177,7 +211,10 @@ def render_aspect_evidence_guided_params() -> dict:
                 key=_EMB_CUSTOM_KEY,
             )
 
-        st.toggle("KeyBERT (`enable_keybert_refinement`)", key=_SESSION_PREFIX + "enable_keybert_refinement")
+        st.toggle(
+            "KeyBERT (`enable_keybert_refinement`)",
+            key=_SESSION_PREFIX + "enable_keybert_refinement",
+        )
         st.toggle(
             "LLM-рефайнинг (`enable_llm_refinement`, нужен APP_OPENAI_API_KEY)",
             key=_SESSION_PREFIX + "enable_llm_refinement",

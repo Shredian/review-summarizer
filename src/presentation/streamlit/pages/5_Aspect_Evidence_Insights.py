@@ -13,6 +13,7 @@ sys.path.append(str(root_path))
 from src.container import Container
 from src.presentation.streamlit.aspect_evidence_insights_data import (
     build_cluster_name_map,
+    cluster_rows_to_dataframe,
     evidence_to_dataframe,
     filter_mentions_df,
     make_cluster_polarity_bars,
@@ -20,16 +21,14 @@ from src.presentation.streamlit.aspect_evidence_insights_data import (
     make_sentiment_section_grouped_bar,
     mention_rows_to_dataframe,
     paginate_dataframe,
-    plan_items_to_dataframe,
-    cluster_rows_to_dataframe,
     params_versions_block,
+    plan_items_to_dataframe,
     reproducible_params_for_display,
     run_diagnostics_block,
     sentiment_section_counts,
     sentiment_section_pivot_for_chart,
 )
 from src.presentation.streamlit.utils.async_utils import run_async
-
 
 TARGET_METHOD = "aspect_evidence_guided_v1"
 
@@ -95,7 +94,15 @@ try:
     sentiment_pivot = sentiment_section_pivot_for_chart(sentiment_df)
     selected_plan_df, dropped_plan_df, plan_diag = plan_items_to_dataframe(plan)
 
-    tab_overview, tab_params, tab_clusters, tab_mentions, tab_evidence, tab_planner, tab_texts = st.tabs(
+    (
+        tab_overview,
+        tab_params,
+        tab_clusters,
+        tab_mentions,
+        tab_evidence,
+        tab_planner,
+        tab_texts,
+    ) = st.tabs(
         [
             "Обзор",
             "Параметры",
@@ -214,7 +221,9 @@ try:
                     "cluster_id": st.column_config.TextColumn("cluster_id", width="small"),
                     "Importance": st.column_config.NumberColumn("Importance", format="%.4f"),
                     "Prevalence": st.column_config.NumberColumn("Prevalence", format="%.4f"),
-                    "Polarity balance": st.column_config.NumberColumn("Polarity bal.", format="%.4f"),
+                    "Polarity balance": st.column_config.NumberColumn(
+                        "Polarity bal.", format="%.4f"
+                    ),
                     "Редкий": st.column_config.CheckboxColumn("Редкий"),
                 },
             )
@@ -223,8 +232,14 @@ try:
 
     with tab_mentions:
         fc1, fc2, fc3 = st.columns([1, 1, 2])
-        all_sections = sorted(mention_df["Секция"].dropna().unique().tolist()) if not mention_df.empty else []
-        all_sentiments = sorted(mention_df["Сентимент"].dropna().unique().tolist()) if not mention_df.empty else []
+        all_sections = (
+            sorted(mention_df["Секция"].dropna().unique().tolist()) if not mention_df.empty else []
+        )
+        all_sentiments = (
+            sorted(mention_df["Сентимент"].dropna().unique().tolist())
+            if not mention_df.empty
+            else []
+        )
         with fc1:
             sel_sec = st.multiselect("Секция", all_sections, default=[], key="m_sec")
         with fc2:
@@ -240,9 +255,15 @@ try:
         )
         st.caption(f"Строк после фильтра: **{len(filtered)}** из {len(mention_df)}")
 
-        page_size_m = st.select_slider("Строк на страницу", options=[25, 50, 100, 200], value=50, key="m_ps")
-        total_pages_m = max(1, (len(filtered) + page_size_m - 1) // page_size_m) if len(filtered) else 1
-        page_m = st.number_input("Страница", min_value=1, max_value=total_pages_m, value=1, key="m_pg")
+        page_size_m = st.select_slider(
+            "Строк на страницу", options=[25, 50, 100, 200], value=50, key="m_ps"
+        )
+        total_pages_m = (
+            max(1, (len(filtered) + page_size_m - 1) // page_size_m) if len(filtered) else 1
+        )
+        page_m = st.number_input(
+            "Страница", min_value=1, max_value=total_pages_m, value=1, key="m_pg"
+        )
         slice_m, _ = paginate_dataframe(filtered, int(page_m), page_size_m)
 
         if not slice_m.empty:
@@ -280,9 +301,13 @@ try:
 
             st.caption(f"Строк: **{len(ev_f)}**")
 
-            page_size_e = st.select_slider("Строк на страницу", options=[25, 50, 100, 200], value=50, key="e_ps")
+            page_size_e = st.select_slider(
+                "Строк на страницу", options=[25, 50, 100, 200], value=50, key="e_ps"
+            )
             total_pages_e = max(1, (len(ev_f) + page_size_e - 1) // page_size_e) if len(ev_f) else 1
-            page_e = st.number_input("Страница", min_value=1, max_value=total_pages_e, value=1, key="e_pg")
+            page_e = st.number_input(
+                "Страница", min_value=1, max_value=total_pages_e, value=1, key="e_pg"
+            )
             slice_e, _ = paginate_dataframe(ev_f, int(page_e), page_size_e)
 
             st.dataframe(
@@ -314,10 +339,15 @@ try:
             st.subheader("Диагностика планировщика")
             if plan_diag:
                 c1, c2, c3, c4 = st.columns(4)
-                keys = ["selected_count", "dropped_count", "rare_selected", "mean_importance"]
+                keys = [
+                    "selected_count",
+                    "dropped_count",
+                    "rare_selected",
+                    "mean_importance",
+                ]
                 labels = ["Выбрано", "Отброшено", "Редких в плане", "Средн. importance"]
                 cols = [c1, c2, c3, c4]
-                for col, key, lab in zip(cols, keys, labels):
+                for col, key, lab in zip(cols, keys, labels, strict=False):
                     if key in plan_diag:
                         col.metric(lab, plan_diag[key])
                 with st.expander("Полный diagnostics_json"):

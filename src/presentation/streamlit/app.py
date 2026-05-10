@@ -17,7 +17,8 @@ st.markdown("""
 - **Product Reviews** — просмотр отзывов конкретного продукта
 - **Summarization** — генерация суммаризации отзывов
 - **History** — история суммаризаций
-- **Aspect Insights** — артефакты и разнообразие нового метода
+- **Review suggestions** — проверка контекстных подсказок при написании отзыва (prepare / suggest / feedback)
+- **Evaluation metrics** — быстрый прогон метрик benchmark (без CLI)
 
 ---
 

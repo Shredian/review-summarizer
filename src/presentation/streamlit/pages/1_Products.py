@@ -40,28 +40,32 @@ with col2:
 try:
     total_count = run_async(get_products_count())
     products_with_counts = run_async(load_products(limit=page_size))
-    
+
     # Фильтрация по поисковому запросу (клиентская)
     if search_query:
         products_with_counts = [
-            (p, c) for p, c in products_with_counts
-            if search_query.lower() in p.name.lower()
+            (p, c) for p, c in products_with_counts if search_query.lower() in p.name.lower()
         ]
-    
+
     st.markdown(f"**Всего продуктов:** {total_count}")
-    
+
     if products_with_counts:
         # Формируем данные для таблицы
         table_data = []
         for product, reviews_count in products_with_counts:
-            table_data.append({
-                "ID": str(product.id)[:8] + "...",
-                "Название": product.name,
-                "Описание": (product.description or "")[:100] + ("..." if product.description and len(product.description) > 100 else ""),
-                "Отзывов": reviews_count,
-                "Создан": product.created_at.strftime("%Y-%m-%d %H:%M") if product.created_at else "-",
-            })
-        
+            table_data.append(
+                {
+                    "ID": str(product.id)[:8] + "...",
+                    "Название": product.name,
+                    "Описание": (product.description or "")[:100]
+                    + ("..." if product.description and len(product.description) > 100 else ""),
+                    "Отзывов": reviews_count,
+                    "Создан": product.created_at.strftime("%Y-%m-%d %H:%M")
+                    if product.created_at
+                    else "-",
+                }
+            )
+
         st.dataframe(
             table_data,
             use_container_width=True,
@@ -74,18 +78,17 @@ try:
                 "Создан": st.column_config.TextColumn("Создан", width="small"),
             },
         )
-        
+
         # Детальный просмотр продукта
         st.markdown("---")
         st.subheader("Детали продукта")
-        
+
         product_names = [p.name for p, _ in products_with_counts]
         selected_name = st.selectbox("Выберите продукт для просмотра", product_names)
-        
+
         if selected_name:
             selected_product = next(
-                (p for p, _ in products_with_counts if p.name == selected_name),
-                None
+                (p for p, _ in products_with_counts if p.name == selected_name), None
             )
             if selected_product:
                 col1, col2 = st.columns(2)
@@ -95,12 +98,14 @@ try:
                 with col2:
                     st.markdown(f"**Создан:** {selected_product.created_at}")
                     st.markdown(f"**Обновлён:** {selected_product.updated_at}")
-                
+
                 if selected_product.description:
                     st.markdown("**Описание:**")
                     st.text(selected_product.description)
-                
-                st.info(f"💡 Перейдите на страницу **Product Reviews**, чтобы посмотреть отзывы этого продукта")
+
+                st.info(
+                    "💡 Перейдите на страницу **Product Reviews**, чтобы посмотреть отзывы этого продукта"
+                )
     else:
         st.info("Продукты не найдены")
 

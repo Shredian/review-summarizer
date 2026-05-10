@@ -9,12 +9,14 @@ from src.utils.logger import logger
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Старт/остановка приложения (логирование)."""
     logger.info("Starting application...")
     yield
     logger.info("Stopping application...")
 
 
 def create_app() -> FastAPI:
+    """FastAPI с API v1 и health-check."""
     app = FastAPI(
         title="Review Summarizer API",
         description="Review summarization service",
@@ -36,6 +38,7 @@ app = create_app()
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(
         "src.presentation.server.server:app",
         host=CONFIG.api_host,

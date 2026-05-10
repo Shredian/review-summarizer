@@ -13,7 +13,11 @@ import plotly.graph_objects as go
 def cluster_rows_to_dataframe(clusters: list[Any]) -> pd.DataFrame:
     rows: list[dict[str, Any]] = []
     for cluster in clusters:
-        aliases = cluster.aliases_json.get("aliases", []) if isinstance(cluster.aliases_json, dict) else []
+        aliases = (
+            cluster.aliases_json.get("aliases", [])
+            if isinstance(cluster.aliases_json, dict)
+            else []
+        )
         rows.append(
             {
                 "Аспект": cluster.aspect_name,
@@ -140,7 +144,9 @@ def make_importance_prevalence_scatter(df: pd.DataFrame) -> go.Figure | None:
                 y=rare["Importance"],
                 mode="markers",
                 name="Редкий (rarity)",
-                marker=dict(size=12, color="#c0392b", symbol="diamond", line=dict(width=0.5, color="white")),
+                marker=dict(
+                    size=12, color="#c0392b", symbol="diamond", line=dict(width=0.5, color="white")
+                ),
                 text=rare["Аспект"],
                 hovertemplate=(
                     "<b>%{text}</b><br>Prevalence: %{x:.4f}<br>Importance: %{y:.4f}<extra></extra>"
@@ -211,7 +217,9 @@ def paginate_dataframe(df: pd.DataFrame, page: int, page_size: int) -> tuple[pd.
     return df.iloc[start : start + page_size], total_pages
 
 
-def plan_items_to_dataframe(plan_obj: Any | None) -> tuple[pd.DataFrame, pd.DataFrame, dict[str, Any]]:
+def plan_items_to_dataframe(
+    plan_obj: Any | None,
+) -> tuple[pd.DataFrame, pd.DataFrame, dict[str, Any]]:
     """Возвращает (selected_df, dropped_series_as_df, diagnostics_dict)."""
     if plan_obj is None:
         return pd.DataFrame(), pd.DataFrame(), {}
@@ -221,7 +229,9 @@ def plan_items_to_dataframe(plan_obj: Any | None) -> tuple[pd.DataFrame, pd.Data
 
     raw_drop = plan_obj.dropped_aspects_json or {}
     dropped_list = raw_drop.get("items", []) if isinstance(raw_drop, dict) else []
-    dropped_df = pd.DataFrame({"Отброшенный аспект": dropped_list}) if dropped_list else pd.DataFrame()
+    dropped_df = (
+        pd.DataFrame({"Отброшенный аспект": dropped_list}) if dropped_list else pd.DataFrame()
+    )
 
     diag = plan_obj.diagnostics_json if isinstance(plan_obj.diagnostics_json, dict) else {}
     return selected_df, dropped_df, diag
