@@ -1,0 +1,29 @@
+[project]
+name = "review-summarizer"
+version = "0.1.0"
+description = "Суммаризация отзывов, подсказки при написании отзыва, evaluation и веб-интерфейс."
+readme = "README.md"
+requires-python = ">=3.14,<3.15"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "UP", "B", "SIM", "RUF"]
+ignore = ["E501", "RUF001", "RUF002", "RUF003"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/presentation/streamlit/pages/*.py" = ["E402"]
+
+[tool.ruff.format]
+quote-style = "double"
+docstring-code-format = true
