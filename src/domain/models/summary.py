@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, List, Dict, Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -12,33 +12,35 @@ class KeyPhraseItem(BaseModel):
     phrase: str = Field(..., description="Словосочетание/фраза")
     sentiment: str = Field(..., description="positive | negative | neutral")
     count: int = Field(..., ge=0, description="Количество упоминаний")
-    share: Optional[float] = Field(default=None, ge=0, le=1, description="Доля/процент встречаемости (0.18 = 18%)")
+    share: float | None = Field(
+        default=None, ge=0, le=1, description="Доля/процент встречаемости (0.18 = 18%)"
+    )
 
 
 class Summary(BaseModel):
-    id: Optional[UUID] = Field(default=None, description="Уникальный идентификатор суммаризации")
+    id: UUID | None = Field(default=None, description="Уникальный идентификатор суммаризации")
     product_id: UUID = Field(..., description="ID продукта")
-    
+
     # Метаданные генерации
     method: str = Field(..., description="Код метода суммаризации")
-    method_version: Optional[str] = Field(default=None, description="Версия/ревизия метода")
-    params: Dict[str, Any] = Field(default_factory=dict, description="Параметры запуска")
+    method_version: str | None = Field(default=None, description="Версия/ревизия метода")
+    params: dict[str, Any] = Field(default_factory=dict, description="Параметры запуска")
     created_at: datetime = Field(default_factory=datetime.now, description="Дата создания")
-    
+
     # Входная статистика
     reviews_count: int = Field(..., ge=0, description="Количество отзывов на входе")
-    rating_avg: Optional[float] = Field(default=None, description="Средний рейтинг")
-    date_min: Optional[datetime] = Field(default=None, description="Дата самого раннего отзыва")
-    date_max: Optional[datetime] = Field(default=None, description="Дата самого позднего отзыва")
-    
+    rating_avg: float | None = Field(default=None, description="Средний рейтинг")
+    date_min: datetime | None = Field(default=None, description="Дата самого раннего отзыва")
+    date_max: datetime | None = Field(default=None, description="Дата самого позднего отзыва")
+
     # Тексты результата (все опциональны — зависят от метода)
-    text_overall: Optional[str] = Field(default=None, description="Один общий текст (единый обзор)")
-    text_neutral: Optional[str] = Field(default=None, description="Нейтральное резюме")
-    text_pros: Optional[str] = Field(default=None, description="Обобщённые плюсы")
-    text_cons: Optional[str] = Field(default=None, description="Обобщённые минусы")
-    
+    text_overall: str | None = Field(default=None, description="Один общий текст (единый обзор)")
+    text_neutral: str | None = Field(default=None, description="Нейтральное резюме")
+    text_pros: str | None = Field(default=None, description="Обобщённые плюсы")
+    text_cons: str | None = Field(default=None, description="Обобщённые минусы")
+
     # Ключевые фразы
-    key_phrases: Optional[List[KeyPhraseItem]] = Field(default=None, description="Ключевые фразы")
+    key_phrases: list[KeyPhraseItem] | None = Field(default=None, description="Ключевые фразы")
 
     def has_structured_summary(self) -> bool:
         """Проверяет, есть ли структурированный результат (pros/cons/neutral)."""
@@ -53,7 +55,7 @@ class Summary(BaseModel):
         return self.key_phrases is not None and len(self.key_phrases) > 0
 
     @classmethod
-    def from_sql_model(cls, summary_db: "SummaryDB") -> "Summary":
+    def from_sql_model(cls, summary_db: SummaryDB) -> Summary:
         """Конвертация из ORM модели в доменную модель."""
         data = {
             "id": summary_db.id,
@@ -70,14 +72,20 @@ class Summary(BaseModel):
             "text_neutral": summary_db.text_neutral,
             "text_pros": summary_db.text_pros,
             "text_cons": summary_db.text_cons,
-            "key_phrases": [KeyPhraseItem(**kp) for kp in summary_db.key_phrases] if summary_db.key_phrases else None,
+            "key_phrases": [KeyPhraseItem(**kp) for kp in summary_db.key_phrases]
+            if summary_db.key_phrases
+            else None,
         }
         return cls(**data)
 
-    def to_sql_model(self) -> "SummaryDB":
+    def to_sql_model(self) -> SummaryDB:
         """Конвертация доменной модели в ORM модель."""
         from src.infrastructure.db.models.summary import SummaryDB
+
         data = self.model_dump()
         if data.get("key_phrases"):
-            data["key_phrases"] = [kp.model_dump() if isinstance(kp, KeyPhraseItem) else kp for kp in data["key_phrases"]]
+            data["key_phrases"] = [
+                kp.model_dump() if isinstance(kp, KeyPhraseItem) else kp
+                for kp in data["key_phrases"]
+            ]
         return SummaryDB(**data)

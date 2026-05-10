@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -9,13 +9,13 @@ if TYPE_CHECKING:
 
 
 class Product(BaseModel):
-    id: Optional[UUID] = Field(default=None, description="Уникальный идентификатор продукта")
+    id: UUID | None = Field(default=None, description="Уникальный идентификатор продукта")
     name: str = Field(..., max_length=255, description="Название продукта")
-    description: Optional[str] = Field(default=None, description="Краткое описание/заметка")
+    description: str | None = Field(default=None, description="Краткое описание/заметка")
     created_at: datetime = Field(default_factory=datetime.now, description="Дата создания")
     updated_at: datetime = Field(default_factory=datetime.now, description="Дата обновления")
 
-    def update(self, name: Optional[str] = None, description: Optional[str] = None) -> None:
+    def update(self, name: str | None = None, description: str | None = None) -> None:
         """Обновление данных продукта."""
         if name is not None:
             self.name = name
@@ -31,4 +31,5 @@ class Product(BaseModel):
     def to_sql_model(self) -> "ProductDB":
         """Конвертация доменной модели в ORM модель."""
         from src.infrastructure.db.models.product import ProductDB
+
         return ProductDB(**self.model_dump())
