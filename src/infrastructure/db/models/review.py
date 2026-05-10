@@ -1,8 +1,8 @@
 import uuid
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String, Text, Float, TIMESTAMP, ForeignKey
+from sqlalchemy import TIMESTAMP, Float, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 class ReviewDB(Base):
     """ORM модель для таблицы reviews (отзывы)."""
-    
+
     __tablename__ = "reviews"
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -24,7 +24,7 @@ class ReviewDB(Base):
         default=uuid.uuid4,
         index=True,
     )
-    
+
     # Foreign keys
     product_id: Mapped[uuid.UUID] = mapped_column(
         PG_UUID(as_uuid=True),
@@ -38,18 +38,18 @@ class ReviewDB(Base):
         nullable=True,
         index=True,
     )
-    
+
     # Метаданные источника
     source: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     url: Mapped[str | None] = mapped_column(Text, nullable=True)
-    
+
     # Содержимое отзыва
     rating: Mapped[float | None] = mapped_column(Float, nullable=True)
     title: Mapped[str | None] = mapped_column(String(500), nullable=True)
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)
     plus: Mapped[str | None] = mapped_column(Text, nullable=True)
     minus: Mapped[str | None] = mapped_column(Text, nullable=True)
-    
+
     # Даты
     review_date: Mapped[datetime | None] = mapped_column(
         TIMESTAMP(timezone=True),
@@ -61,9 +61,9 @@ class ReviewDB(Base):
     )
 
     # Relationships
-    product: Mapped["ProductDB"] = relationship(
+    product: Mapped[ProductDB] = relationship(
         back_populates="reviews",
     )
-    user: Mapped["UserDB | None"] = relationship(
+    user: Mapped[UserDB | None] = relationship(
         back_populates="reviews",
     )

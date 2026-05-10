@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Iterable
 from difflib import SequenceMatcher
-from typing import Iterable
 
 from src.infrastructure.services.summarization.aspect_evidence_guided.embedding_cache import (
     get_shared_sentence_transformer,
@@ -29,7 +29,13 @@ class AspectCanonicalizer:
         if not mention_list:
             return []
 
-        labels = list({mention.aspect_candidate.strip().lower() for mention in mention_list if mention.aspect_candidate})
+        labels = list(
+            {
+                mention.aspect_candidate.strip().lower()
+                for mention in mention_list
+                if mention.aspect_candidate
+            }
+        )
         if not labels:
             return []
 

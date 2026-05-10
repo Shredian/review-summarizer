@@ -1,5 +1,5 @@
 import re
-from typing import Iterable
+from collections.abc import Iterable
 
 from src.infrastructure.services.summarization.aspect_evidence_guided.schemas import (
     NormalizedReview,

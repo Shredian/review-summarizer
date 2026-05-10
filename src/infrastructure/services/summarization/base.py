@@ -1,11 +1,13 @@
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any
+from typing import Any
 
 from src.domain.models.review import Review
 from src.domain.models.summary import Summary
 
 
 class BaseSummarizationMethod(ABC):
+    """Базовый контракт метода суммаризации (код, версия, summarize, опционально артефакты в БД)."""
+
     @property
     @abstractmethod
     def code(self) -> str:
@@ -29,17 +31,15 @@ class BaseSummarizationMethod(ABC):
     async def summarize(
         self,
         product_id: str,
-        reviews: List[Review],
-        params: Dict[str, Any],
+        reviews: list[Review],
+        params: dict[str, Any],
     ) -> Summary:
-        """Выполняет суммаризацию отзывов."""
         pass
 
     async def persist_artifacts(self, summary: Summary) -> None:
-        """Опциональный пост-процессинг после сохранения Summary в БД."""
         return None
 
-    def get_info(self) -> Dict[str, Any]:
+    def get_info(self) -> dict[str, Any]:
         return {
             "code": self.code,
             "name": self.name,

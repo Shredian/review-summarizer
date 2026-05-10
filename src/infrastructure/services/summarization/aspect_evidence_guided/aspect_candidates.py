@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from collections import Counter
 import re
-from typing import Any, Iterable
+from collections import Counter
+from collections.abc import Iterable
+from typing import Any
 
 from src.infrastructure.services.summarization.aspect_evidence_guided.embedding_cache import (
     get_shared_sentence_transformer,

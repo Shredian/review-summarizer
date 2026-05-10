@@ -40,7 +40,8 @@ class ContentPlanner:
             "dropped_count": len(dropped),
             "rare_selected": len([item for item in selected_aspects if item.rarity_flag]),
             "mean_importance": round(
-                sum(item.importance_score for item in selected_aspects) / max(1, len(selected_aspects)),
+                sum(item.importance_score for item in selected_aspects)
+                / max(1, len(selected_aspects)),
                 6,
             ),
         }

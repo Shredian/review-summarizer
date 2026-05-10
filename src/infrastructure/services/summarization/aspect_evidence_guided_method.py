@@ -60,7 +60,9 @@ from src.infrastructure.services.summarization.aspect_evidence_guided.schemas im
 )
 from src.infrastructure.services.summarization.aspect_evidence_guided.scorer import AspectScorer
 from src.infrastructure.services.summarization.aspect_evidence_guided.segmenter import SpanSegmenter
-from src.infrastructure.services.summarization.aspect_evidence_guided.verifier import SummaryVerifier
+from src.infrastructure.services.summarization.aspect_evidence_guided.verifier import (
+    SummaryVerifier,
+)
 from src.infrastructure.services.summarization.base import BaseSummarizationMethod
 
 

@@ -5,31 +5,29 @@ import random
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
-from typing import List, Dict, Any, Optional
+from typing import Any
 from uuid import UUID
 
 from src.domain.models.review import Review
-from src.domain.models.summary import Summary, KeyPhraseItem
+from src.domain.models.summary import KeyPhraseItem, Summary
 from src.infrastructure.clients.openai_client import OpenAIClient
 from src.infrastructure.services.summarization.base import BaseSummarizationMethod
 from src.infrastructure.services.summarization.config import get_user_reference
 from src.infrastructure.services.summarization.preprocessing import (
-    lemmatize_text,
     get_review_sentences_with_context,
+    lemmatize_text,
 )
 from src.infrastructure.services.summarization.prompts import (
+    CORRECTION_PROMPT,
     EXTRACT_ASPECTS_PROMPT,
     GENERATE_REVIEWS_PROMPT,
     GENERATE_REVIEWS_PROMPT_SOFT,
-    CORRECTION_PROMPT,
 )
 from src.utils.logger import logger
 
 
 @dataclass
 class PhraseData:
-    """Данные о фразе из отзывов (для аспектного метода)."""
-
     phrase: str
     lemmatized: str
     sentiment: str  # 'positive' или 'negative'
@@ -37,15 +35,7 @@ class PhraseData:
 
 
 class AspectSummarizationMethod(BaseSummarizationMethod):
-    """Метод аспектной суммаризации с O(1) затратами токенов по N отзывов.
-
-    Pipeline:
-    1. Стратифицированная выборка 30-50 отзывов
-    2. LLM: извлечение 5-8 аспектов + ключевые слова
-    3. Локальный поиск фраз по всем отзывам
-    4. Генерация обобщённых отзывов через LLM
-    5. Корректура грамматики через LLM
-    """
+    """Аспекты по выборке + локальный поиск фраз + LLM для обобщённых формулировок."""
 
     def __init__(
         self,
@@ -78,14 +68,12 @@ class AspectSummarizationMethod(BaseSummarizationMethod):
     async def summarize(
         self,
         product_id: str,
-        reviews: List[Review],
-        params: Dict[str, Any],
+        reviews: list[Review],
+        params: dict[str, Any],
     ) -> Summary:
-        """Выполняет суммаризацию отзывов."""
         category = params.get("category", "товар")
         use_soft_mode = params.get("use_soft_mode", False)
         sample_size = params.get("sample_size", 50)
-        aspects_count = params.get("aspects_count", 8)
         phrases_per_aspect = params.get("phrases_per_aspect", 5)
         representative_count = params.get("representative_count", 10)
 
@@ -102,9 +90,7 @@ class AspectSummarizationMethod(BaseSummarizationMethod):
         # 1. Стратифицированная выборка
         sample_reviews = self._sample_reviews(reviews_with_text, sample_size)
         sample_texts = [r.get_full_text() for r in sample_reviews]
-        reviews_sample = "\n---\n".join(
-            f"[{i+1}] {text}" for i, text in enumerate(sample_texts)
-        )
+        reviews_sample = "\n---\n".join(f"[{i + 1}] {text}" for i, text in enumerate(sample_texts))
 
         logger.info(f"Выборка: {len(sample_reviews)} отзывов")
 
@@ -178,9 +164,7 @@ class AspectSummarizationMethod(BaseSummarizationMethod):
             key_phrases=key_phrases if key_phrases else None,
         )
 
-    def _sample_reviews(
-        self, reviews: List[Review], sample_size: int
-    ) -> List[Review]:
+    def _sample_reviews(self, reviews: list[Review], sample_size: int) -> list[Review]:
         """Стратифицированная выборка отзывов по рейтингу."""
         sample_size = min(sample_size, len(reviews))
 
@@ -212,19 +196,13 @@ class AspectSummarizationMethod(BaseSummarizationMethod):
 
         if len(result) < sample_size:
             remaining = [r for r in reviews if r not in result]
-            result.extend(
-                random.sample(remaining, min(sample_size - len(result), len(remaining)))
-            )
+            result.extend(random.sample(remaining, min(sample_size - len(result), len(remaining))))
 
         return result[:sample_size]
 
-    async def _extract_aspects(
-        self, reviews_sample: str, category: str
-    ) -> Dict[str, List[str]]:
+    async def _extract_aspects(self, reviews_sample: str, category: str) -> dict[str, list[str]]:
         """Извлекает аспекты и ключевые слова через LLM."""
-        prompt = EXTRACT_ASPECTS_PROMPT.format(
-            category=category, reviews_sample=reviews_sample
-        )
+        prompt = EXTRACT_ASPECTS_PROMPT.format(category=category, reviews_sample=reviews_sample)
 
         max_attempts = 3
         for attempt in range(1, max_attempts + 1):
@@ -260,24 +238,22 @@ class AspectSummarizationMethod(BaseSummarizationMethod):
 
     def _search_phrases_by_aspect(
         self,
-        reviews: List[Review],
-        aspects_dict: Dict[str, List[str]],
+        reviews: list[Review],
+        aspects_dict: dict[str, list[str]],
         phrases_per_aspect: int,
-    ) -> List[PhraseData]:
+    ) -> list[PhraseData]:
         """Локальный поиск фраз по аспектам во всех отзывах."""
         aspects_order = list(aspects_dict.keys())
-        aspect_keywords: Dict[str, List[str]] = {}
+        aspect_keywords: dict[str, list[str]] = {}
         for aspect, keywords in aspects_dict.items():
             lemmas = [
-                lemmatize_text(kw).strip()
-                for kw in keywords
-                if kw and lemmatize_text(kw).strip()
+                lemmatize_text(kw).strip() for kw in keywords if kw and lemmatize_text(kw).strip()
             ]
             if lemmas:
                 aspect_keywords[aspect] = lemmas
 
-        phrase_review_count: Dict[tuple, int] = defaultdict(int)
-        phrase_to_aspects: Dict[tuple, set] = defaultdict(set)
+        phrase_review_count: dict[tuple, int] = defaultdict(int)
+        phrase_to_aspects: dict[tuple, set] = defaultdict(set)
 
         for review in reviews:
             review_phrases: set = set()
@@ -299,7 +275,7 @@ class AspectSummarizationMethod(BaseSummarizationMethod):
                             phrase_to_aspects[key].add(aspect)
                             break
 
-        phrases_by_aspect: Dict[str, Dict[str, List[tuple]]] = {
+        phrases_by_aspect: dict[str, dict[str, list[tuple]]] = {
             a: {"positive": [], "negative": []} for a in aspects_order
         }
 
@@ -308,15 +284,13 @@ class AspectSummarizationMethod(BaseSummarizationMethod):
                 if aspect in phrases_by_aspect:
                     phrases_by_aspect[aspect][sentiment].append((phrase, count))
 
-        result: List[PhraseData] = []
+        result: list[PhraseData] = []
         seen: set = set()
 
         for aspect in aspects_order:
             for sentiment in ("positive", "negative"):
                 items = phrases_by_aspect[aspect][sentiment]
-                items_sorted = sorted(items, key=lambda x: x[1], reverse=True)[
-                    :phrases_per_aspect
-                ]
+                items_sorted = sorted(items, key=lambda x: x[1], reverse=True)[:phrases_per_aspect]
                 for phrase, count in items_sorted:
                     if (phrase, sentiment) not in seen:
                         seen.add((phrase, sentiment))
@@ -331,9 +305,7 @@ class AspectSummarizationMethod(BaseSummarizationMethod):
 
         return result
 
-    def _select_representative_reviews(
-        self, review_texts: List[str], count: int = 10
-    ) -> List[str]:
+    def _select_representative_reviews(self, review_texts: list[str], count: int = 10) -> list[str]:
         """Выбирает репрезентативные отзывы (самые длинные)."""
         sorted_reviews = sorted(review_texts, key=len, reverse=True)
         top_20 = sorted_reviews[:20]
@@ -343,11 +315,11 @@ class AspectSummarizationMethod(BaseSummarizationMethod):
 
     async def _generate_reviews(
         self,
-        phrases: List[PhraseData],
-        representative_reviews: List[str],
+        phrases: list[PhraseData],
+        representative_reviews: list[str],
         category: str,
         use_soft_mode: bool,
-    ) -> Optional[Dict[str, str]]:
+    ) -> dict[str, str] | None:
         """Генерирует обобщённые отзывы через LLM."""
         positive_phrases = [p.phrase for p in phrases if p.sentiment == "positive"]
         negative_phrases = [p.phrase for p in phrases if p.sentiment == "negative"]
@@ -355,16 +327,12 @@ class AspectSummarizationMethod(BaseSummarizationMethod):
         if not positive_phrases and not negative_phrases:
             return None
 
-        representative_reviews = self._format_representative_reviews(
-            representative_reviews
-        )
+        representative_reviews = self._format_representative_reviews(representative_reviews)
 
         user_reference = get_user_reference(category)
         user_reference_capitalized = user_reference.capitalize()
 
-        prompt_template = (
-            GENERATE_REVIEWS_PROMPT_SOFT if use_soft_mode else GENERATE_REVIEWS_PROMPT
-        )
+        prompt_template = GENERATE_REVIEWS_PROMPT_SOFT if use_soft_mode else GENERATE_REVIEWS_PROMPT
         prompt = prompt_template.format(
             category=category,
             representative_reviews=representative_reviews,
@@ -389,9 +357,7 @@ class AspectSummarizationMethod(BaseSummarizationMethod):
 
                 current_reviews = json.loads(response[start:end])
 
-                if not all(
-                    key in current_reviews for key in ["positive", "negative", "general"]
-                ):
+                if not all(key in current_reviews for key in ["positive", "negative", "general"]):
                     logger.warning(f"Не все ключи присутствуют (попытка {attempt})")
                     continue
 
@@ -405,12 +371,7 @@ class AspectSummarizationMethod(BaseSummarizationMethod):
                     '<span class="negative">' in negative_text if negative_text else False
                 )
 
-                if (
-                    positive_text
-                    and negative_text
-                    and has_positive_tag
-                    and has_negative_tag
-                ):
+                if positive_text and negative_text and has_positive_tag and has_negative_tag:
                     generated_reviews = current_reviews
                     logger.info("[ГЕНЕРАЦИЯ] Успешно сгенерированы отзывы")
                     break
@@ -424,13 +385,11 @@ class AspectSummarizationMethod(BaseSummarizationMethod):
 
         return generated_reviews
 
-    def _format_representative_reviews(self, reviews: List[str]) -> str:
+    def _format_representative_reviews(self, reviews: list[str]) -> str:
         """Форматирует репрезентативные отзывы для промпта."""
         return "\n".join(f"  - {r}" for r in reviews)
 
-    async def _correct_reviews(
-        self, generated_reviews: Dict[str, str]
-    ) -> Dict[str, str]:
+    async def _correct_reviews(self, generated_reviews: dict[str, str]) -> dict[str, str]:
         """Корректирует грамматику сгенерированных отзывов."""
         if not generated_reviews or not any(generated_reviews.values()):
             return generated_reviews
@@ -447,16 +406,12 @@ class AspectSummarizationMethod(BaseSummarizationMethod):
                 start = response.find("{")
                 end = response.rfind("}") + 1
                 if start == -1 or end == 0:
-                    logger.warning(
-                        f"JSON не найден в ответе корректуры (попытка {attempt})"
-                    )
+                    logger.warning(f"JSON не найден в ответе корректуры (попытка {attempt})")
                     continue
 
                 corrected = json.loads(response[start:end])
 
-                if all(
-                    key in corrected for key in ["positive", "negative", "general"]
-                ):
+                if all(key in corrected for key in ["positive", "negative", "general"]):
                     logger.info("[КОРРЕКТУРА] Успешно откорректированы отзывы")
                     return corrected
                 else:
@@ -465,14 +420,12 @@ class AspectSummarizationMethod(BaseSummarizationMethod):
                     )
 
             except json.JSONDecodeError as e:
-                logger.error(
-                    f"Ошибка декодирования JSON при корректуре (попытка {attempt}): {e}"
-                )
+                logger.error(f"Ошибка декодирования JSON при корректуре (попытка {attempt}): {e}")
 
         return generated_reviews
 
     def _create_empty_summary(
-        self, product_id: str, reviews: List[Review], params: Dict[str, Any]
+        self, product_id: str, reviews: list[Review], params: dict[str, Any]
     ) -> Summary:
         """Создаёт пустой Summary в случае ошибок."""
         ratings = [r.rating for r in reviews if r.rating is not None]

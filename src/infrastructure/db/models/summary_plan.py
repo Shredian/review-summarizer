@@ -1,8 +1,8 @@
 import uuid
 from datetime import UTC, datetime
-from typing import Any, Dict
+from typing import Any
 
-from sqlalchemy import ForeignKey, String, TIMESTAMP
+from sqlalchemy import TIMESTAMP, ForeignKey, String
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
@@ -28,9 +28,9 @@ class SummaryPlanDB(Base):
         unique=True,
         index=True,
     )
-    selected_aspects_json: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False)
-    dropped_aspects_json: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False)
-    diagnostics_json: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    selected_aspects_json: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    dropped_aspects_json: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    diagnostics_json: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
     planner_version: Mapped[str] = mapped_column(String(50), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True),

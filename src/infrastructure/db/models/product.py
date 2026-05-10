@@ -1,8 +1,8 @@
 import uuid
-from datetime import datetime, UTC
-from typing import List, TYPE_CHECKING
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
-from sqlalchemy import String, Text, TIMESTAMP
+from sqlalchemy import TIMESTAMP, String, Text
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 class ProductDB(Base):
     """ORM модель для таблицы products."""
-    
+
     __tablename__ = "products"
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -26,7 +26,7 @@ class ProductDB(Base):
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    
+
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True),
         default=lambda: datetime.now(UTC),
@@ -38,12 +38,12 @@ class ProductDB(Base):
     )
 
     # Relationships
-    reviews: Mapped[List["ReviewDB"]] = relationship(
+    reviews: Mapped[list[ReviewDB]] = relationship(
         back_populates="product",
         cascade="all, delete-orphan",
         lazy="selectin",
     )
-    summaries: Mapped[List["SummaryDB"]] = relationship(
+    summaries: Mapped[list[SummaryDB]] = relationship(
         back_populates="product",
         cascade="all, delete-orphan",
         lazy="selectin",

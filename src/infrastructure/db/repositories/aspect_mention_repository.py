@@ -1,4 +1,4 @@
-from typing import Sequence
+from collections.abc import Sequence
 from uuid import UUID
 
 from sqlalchemy import select
@@ -9,7 +9,7 @@ from src.infrastructure.db.models.aspect_mention import AspectMentionDB
 
 
 class AspectMentionRepository:
-    """Репозиторий для сохранения упоминаний аспектов."""
+    """Упоминания аспектов в БД, привязанные к summary."""
 
     def __init__(self, session_factory: sessionmaker[AsyncSession]) -> None:
         self.session_factory = session_factory

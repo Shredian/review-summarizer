@@ -27,19 +27,12 @@ _MAX_RETRIES = 2
 
 
 class LLMGroundedGenerator:
-    """Генерирует summary через LLM, опираясь на aspect-level aggregated data.
-
-    Три секции (overall, pros, cons) генерируются параллельно через
-    LangChain with_structured_output. При исчерпании попыток возвращает None
-    для соответствующей секции — orchestrator должен обработать это
-    или сделать fallback на GroundedGenerator.
-    """
+    """LLM-генерация секций overall / pros / cons по aggregated aspect-evidence (structured output)."""
 
     def __init__(self, openai_client: OpenAIClient) -> None:
         self._llm = openai_client._client
 
     async def generate(self, inp: SummaryGenerationInput) -> GenerationOutput:
-        """Параллельно генерирует overall, pros и cons."""
         overall_task = asyncio.create_task(self._generate_overall(inp))
         pros_task = asyncio.create_task(self._generate_pros(inp))
         cons_task = asyncio.create_task(self._generate_cons(inp))

@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Iterable
+from collections.abc import Iterable
 
 from src.infrastructure.services.summarization.aspect_evidence_guided.schemas import (
     MentionExtractionResult,
     ReviewSpan,
     SentimentLabel,
 )
-
 
 POSITIVE_MARKERS = (
     "хорош",  # хорошие, хорошо, хорошее, хорошая, хороши, лучш, прехорош
@@ -144,7 +143,9 @@ class HeuristicMentionExtractor(BaseMentionExtractor):
         )
         for span in spans:
             sentiment, score = self._sentiment_for_span(span.normalized_text)
-            matched = [candidate for candidate in sorted_candidates if candidate in span.normalized_text]
+            matched = [
+                candidate for candidate in sorted_candidates if candidate in span.normalized_text
+            ]
             for candidate in matched[:3]:
                 mentions.append(
                     MentionExtractionResult(

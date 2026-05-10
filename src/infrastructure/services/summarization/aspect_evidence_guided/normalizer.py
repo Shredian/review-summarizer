@@ -1,4 +1,5 @@
-from typing import Iterable
+from collections.abc import Iterable
+from typing import ClassVar
 
 from src.domain.models.review import Review
 from src.infrastructure.services.summarization.aspect_evidence_guided.schemas import (
@@ -11,7 +12,7 @@ from src.infrastructure.services.summarization.aspect_evidence_guided.schemas im
 class ReviewNormalizer:
     """Собирает канонический текст отзыва с секционными маркерами."""
 
-    _SECTION_MARKERS: dict[SectionType, str] = {
+    _SECTION_MARKERS: ClassVar[dict[SectionType, str]] = {
         SectionType.TITLE: "[TITLE]",
         SectionType.PLUS: "[PLUS]",
         SectionType.MINUS: "[MINUS]",
@@ -32,7 +33,9 @@ class ReviewNormalizer:
             if review.minus:
                 sections.append(SectionChunk(section=SectionType.MINUS, text=review.minus.strip()))
             if review.comment:
-                sections.append(SectionChunk(section=SectionType.COMMENT, text=review.comment.strip()))
+                sections.append(
+                    SectionChunk(section=SectionType.COMMENT, text=review.comment.strip())
+                )
 
             if not sections:
                 continue

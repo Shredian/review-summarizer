@@ -5,7 +5,7 @@ from enum import StrEnum
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class SectionType(StrEnum):
@@ -124,7 +124,7 @@ class AspectEvidenceGuidedParams(BaseModel):
     """Параметры `aspect_evidence_guided_v1`.
 
     Максимальное качество: `enable_keybert_refinement` и `enable_llm_refinement`, ключ OpenAI в окружении;
-    для KeyBERT и кластеризации нужны зависимости из `requirements.research.txt` (в Docker включаются по умолчанию).
+    для KeyBERT и кластеризации нужны пакеты `keybert` / `sentence-transformers` из корневого `requirements.txt`.
     """
 
     category: str = "товар"

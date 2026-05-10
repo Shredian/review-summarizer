@@ -58,7 +58,9 @@ def _render_positive_aspects_block(
 ) -> str:
     """Рендерит только аспекты с положительной поддержкой."""
     positive = [
-        a for a in aspects if a.positive_mentions > 0 and a.target_polarity in ("positive", "balanced")
+        a
+        for a in aspects
+        if a.positive_mentions > 0 and a.target_polarity in ("positive", "balanced")
     ]
     return _render_aspects_block(positive, max_evidence=max_evidence)
 
@@ -69,7 +71,9 @@ def _render_negative_aspects_block(
 ) -> str:
     """Рендерит только аспекты с отрицательной поддержкой."""
     negative = [
-        a for a in aspects if a.negative_mentions > 0 and a.target_polarity in ("negative", "balanced")
+        a
+        for a in aspects
+        if a.negative_mentions > 0 and a.target_polarity in ("negative", "balanced")
     ]
     return _render_aspects_block(negative, max_evidence=max_evidence)
 

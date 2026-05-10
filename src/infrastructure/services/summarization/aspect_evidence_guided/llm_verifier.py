@@ -23,17 +23,7 @@ _MAX_RETRIES = 2
 
 
 class LLMSummaryVerifier:
-    """Верифицирует summary через LLM, при необходимости запускает revision pass.
-
-    Проверяет:
-    - unsupported claims (утверждения без опоры на evidence),
-    - missing must_include аспекты,
-    - искажение polarity баланса,
-    - слишком расплывчатые формулировки.
-
-    Если is_valid=False и есть revision_instructions — запускает revision pass
-    для text_overall и возвращает исправленный output в VerificationResult.
-    """
+    """Structured LLM-проверка summary по evidence и опциональный revision overall-текста."""
 
     def __init__(self, openai_client: OpenAIClient) -> None:
         self._llm = openai_client._client
@@ -65,7 +55,9 @@ class LLMSummaryVerifier:
                 verification_result.revision_instructions,
             )
             try:
-                revised_output = await self._run_revision(inp, output, verification_result.revision_instructions)
+                revised_output = await self._run_revision(
+                    inp, output, verification_result.revision_instructions
+                )
             except Exception as exc:
                 logger.warning("LLMSummaryVerifier: revision pass завершился с ошибкой: {}", exc)
 
@@ -81,16 +73,16 @@ class LLMSummaryVerifier:
         inp: SummaryGenerationInput,
         text_overall: str,
     ) -> LLMVerificationOutput:
-        structured_llm = self._llm.with_structured_output(LLMVerificationOutput, method="json_schema")
+        structured_llm = self._llm.with_structured_output(
+            LLMVerificationOutput, method="json_schema"
+        )
         messages = render_verification_prompt(inp, text_overall)
 
-        last_exc: Exception | None = None
         for attempt in range(_MAX_RETRIES + 1):
             try:
                 result: LLMVerificationOutput = await structured_llm.ainvoke(messages)
                 return result
             except Exception as exc:
-                last_exc = exc
                 logger.warning(
                     "LLMSummaryVerifier: verification attempt {}/{} failed: {}",
                     attempt + 1,
@@ -121,9 +113,7 @@ class LLMSummaryVerifier:
         for attempt in range(_MAX_RETRIES + 1):
             try:
                 result: LLMOverallOutput = await structured_llm.ainvoke(messages)
-                return original_output.model_copy(
-                    update={"text_overall": result.text_overall}
-                )
+                return original_output.model_copy(update={"text_overall": result.text_overall})
             except Exception as exc:
                 last_exc = exc
                 logger.warning(

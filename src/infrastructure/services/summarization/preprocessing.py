@@ -2,7 +2,7 @@
 
 import re
 import string
-from typing import List, Optional, Tuple, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from src.infrastructure.services.summarization.config import STOP_WORDS
 
@@ -16,11 +16,13 @@ def _get_nlp():
     global _nlp
     if _nlp is None:
         import spacy
+
         try:
             _nlp = spacy.load("ru_core_news_sm")
         except OSError:
             # Модель не установлена, нужно скачать
             from spacy.cli import download
+
             download("ru_core_news_sm")
             _nlp = spacy.load("ru_core_news_sm")
     return _nlp
@@ -42,11 +44,7 @@ def lemmatize_text(text: str) -> str:
     text = re.sub(rf"[^{string.ascii_letters}а-яёА-ЯЁ\s]", "", text)
     doc = nlp(text)
     return " ".join(
-        [
-            token.lemma_
-            for token in doc
-            if token.is_alpha and token.lemma_ not in STOP_WORDS
-        ]
+        [token.lemma_ for token in doc if token.is_alpha and token.lemma_ not in STOP_WORDS]
     )
 
 
@@ -94,10 +92,10 @@ def is_review_useful(text: str) -> bool:
 
 
 def has_punctuation(phrase: str) -> bool:
-    return bool(re.search(r"[{}]".format(re.escape(string.punctuation)), phrase))
+    return bool(re.search(rf"[{re.escape(string.punctuation)}]", phrase))
 
 
-def split_sentences(text: str) -> List[str]:
+def split_sentences(text: str) -> list[str]:
     """Разбивает текст на предложения по знакам препинания .!?"""
     if not text or not text.strip():
         return []
@@ -105,16 +103,16 @@ def split_sentences(text: str) -> List[str]:
     return [s.strip() for s in sentences if s.strip()]
 
 
-def get_review_sentences_with_context(review: "Review") -> List[Tuple[str, Optional[str]]]:
+def get_review_sentences_with_context(review: "Review") -> list[tuple[str, str | None]]:
     """Извлекает предложения из отзыва с указанием тональности.
 
     Returns:
         Список кортежей (предложение, тональность).
         Тональность: "positive" | "negative" | "neutral" | None
     """
-    result: List[Tuple[str, Optional[str]]] = []
+    result: list[tuple[str, str | None]] = []
 
-    def _sentiment_from_rating(rating: Optional[float]) -> Optional[str]:
+    def _sentiment_from_rating(rating: float | None) -> str | None:
         if rating is None:
             return "neutral"
         if rating >= 4:

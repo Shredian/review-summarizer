@@ -1,15 +1,15 @@
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import Any
 from uuid import UUID
 
 from src.domain.models.review import Review
-from src.domain.models.summary import Summary, KeyPhraseItem
+from src.domain.models.summary import KeyPhraseItem, Summary
 from src.infrastructure.services.summarization.base import BaseSummarizationMethod
 
 
 class StubSummarizationMethod(BaseSummarizationMethod):
     """Заглушка метода суммаризации для тестирования.
-    
+
     Возвращает тестовые данные без реальной суммаризации.
     """
 
@@ -32,33 +32,33 @@ class StubSummarizationMethod(BaseSummarizationMethod):
     async def summarize(
         self,
         product_id: str,
-        reviews: List[Review],
-        params: Dict[str, Any],
+        reviews: list[Review],
+        params: dict[str, Any],
     ) -> Summary:
         """Возвращает тестовый результат суммаризации."""
-        
+
         # Вычисляем статистику по отзывам
         reviews_count = len(reviews)
-        
+
         ratings = [r.rating for r in reviews if r.rating is not None]
         rating_avg = sum(ratings) / len(ratings) if ratings else None
-        
+
         dates = [r.review_date for r in reviews if r.review_date is not None]
         date_min = min(dates) if dates else None
         date_max = max(dates) if dates else None
-        
+
         # Формируем тестовый результат
         # В реальном методе здесь была бы логика суммаризации
-        
+
         text_overall = None
         text_neutral = None
         text_pros = None
         text_cons = None
         key_phrases = None
-        
+
         # Определяем тип результата по параметрам
         output_type = params.get("output_type", "structured")
-        
+
         if output_type == "overall":
             text_overall = self._generate_overall_text(reviews)
         else:
@@ -66,7 +66,7 @@ class StubSummarizationMethod(BaseSummarizationMethod):
             text_pros = self._generate_pros_text(reviews)
             text_cons = self._generate_cons_text(reviews)
             key_phrases = self._generate_key_phrases(reviews)
-        
+
         return Summary(
             product_id=UUID(product_id) if isinstance(product_id, str) else product_id,
             method=self.code,
@@ -84,21 +84,21 @@ class StubSummarizationMethod(BaseSummarizationMethod):
             key_phrases=key_phrases,
         )
 
-    def _generate_overall_text(self, reviews: List[Review]) -> str:
+    def _generate_overall_text(self, reviews: list[Review]) -> str:
         """Генерирует общий текст суммаризации (заглушка)."""
         return (
             f"Это тестовая суммаризация {len(reviews)} отзывов. "
             "В реальном методе здесь будет результат работы алгоритма суммаризации."
         )
 
-    def _generate_neutral_text(self, reviews: List[Review]) -> str:
+    def _generate_neutral_text(self, reviews: list[Review]) -> str:
         """Генерирует нейтральное резюме (заглушка)."""
         return (
             f"Проанализировано {len(reviews)} отзывов. "
             "Пользователи отмечают как положительные, так и отрицательные стороны продукта."
         )
 
-    def _generate_pros_text(self, reviews: List[Review]) -> str:
+    def _generate_pros_text(self, reviews: list[Review]) -> str:
         """Генерирует текст о плюсах (заглушка)."""
         # Собираем реальные плюсы из отзывов, если есть
         pros_list = [r.plus for r in reviews if r.plus]
@@ -106,7 +106,7 @@ class StubSummarizationMethod(BaseSummarizationMethod):
             return f"Основные плюсы по мнению пользователей: {'; '.join(pros_list[:3])}..."
         return "Пользователи отмечают качество продукта и соотношение цена/качество."
 
-    def _generate_cons_text(self, reviews: List[Review]) -> str:
+    def _generate_cons_text(self, reviews: list[Review]) -> str:
         """Генерирует текст о минусах (заглушка)."""
         # Собираем реальные минусы из отзывов, если есть
         cons_list = [r.minus for r in reviews if r.minus]
@@ -114,7 +114,7 @@ class StubSummarizationMethod(BaseSummarizationMethod):
             return f"Основные минусы по мнению пользователей: {'; '.join(cons_list[:3])}..."
         return "Некоторые пользователи отмечают отдельные недостатки, требующие внимания."
 
-    def _generate_key_phrases(self, reviews: List[Review]) -> List[KeyPhraseItem]:
+    def _generate_key_phrases(self, reviews: list[Review]) -> list[KeyPhraseItem]:
         """Генерирует ключевые фразы (заглушка)."""
         # Тестовые ключевые фразы
         return [

@@ -1,8 +1,8 @@
 import uuid
 from datetime import UTC, datetime
-from typing import Any, Dict
+from typing import Any
 
-from sqlalchemy import Boolean, Float, ForeignKey, Integer, String, TIMESTAMP
+from sqlalchemy import TIMESTAMP, Boolean, Float, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
@@ -34,7 +34,7 @@ class AspectClusterDB(Base):
         index=True,
     )
     aspect_name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
-    aliases_json: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    aliases_json: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
     total_mentions: Mapped[int] = mapped_column(Integer, nullable=False)
     positive_mentions: Mapped[int] = mapped_column(Integer, nullable=False)
     negative_mentions: Mapped[int] = mapped_column(Integer, nullable=False)

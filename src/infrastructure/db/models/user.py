@@ -1,8 +1,8 @@
 import uuid
-from datetime import datetime, UTC
-from typing import List, TYPE_CHECKING
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
-from sqlalchemy import String, Text, TIMESTAMP
+from sqlalchemy import TIMESTAMP, String, Text
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 class UserDB(Base):
     """ORM модель для таблицы users (авторы отзывов)."""
-    
+
     __tablename__ = "users"
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -25,14 +25,14 @@ class UserDB(Base):
     )
     display_name: Mapped[str] = mapped_column(String(255), nullable=False)
     profile_url: Mapped[str | None] = mapped_column(Text, nullable=True)
-    
+
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True),
         default=lambda: datetime.now(UTC),
     )
 
     # Relationships
-    reviews: Mapped[List["ReviewDB"]] = relationship(
+    reviews: Mapped[list[ReviewDB]] = relationship(
         back_populates="user",
         lazy="selectin",
     )
