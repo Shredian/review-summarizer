@@ -8,5 +8,10 @@ __pycache__/
 .venv/
 .idea/
 docs/
+examples/
+
+.pytest_cache/
+.ruff_cache/
+
 logs/
 migrations/data/
