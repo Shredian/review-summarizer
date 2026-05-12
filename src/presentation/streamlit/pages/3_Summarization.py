@@ -16,11 +16,11 @@ from src.presentation.streamlit.aspect_evidence_summarization_params_ui import (
     render_aspect_evidence_guided_params,
 )
 from src.presentation.streamlit.utils.async_utils import run_async
-
-
-async def load_products():
-    app = Container.product_application()
-    return await app.list(limit=1000)
+from src.presentation.streamlit.utils.key_phrases_ui import bucket_key_phrases
+from src.presentation.streamlit.utils.product_choices import (
+    build_product_choice_map,
+    load_products_with_review_counts,
+)
 
 
 async def load_reviews_count(product_id: UUID):
@@ -69,21 +69,21 @@ st.markdown(
 st.title("✨ Генерация суммаризации")
 
 try:
-    # Загружаем список продуктов
-    products = run_async(load_products())
+    pairs = run_async(load_products_with_review_counts(limit=1000, offset=0))
 
-    if not products:
+    if not pairs:
         st.warning("Нет продуктов в базе данных")
         st.stop()
 
-    # Выбор продукта
-    product_options = {p.name: p for p in products}
-    selected_name = st.selectbox("Выберите продукт", list(product_options.keys()))
-    selected_product = product_options[selected_name]
+    choice_map = build_product_choice_map(pairs)
+    count_by_product_id = {p.id: c for p, c in pairs}
 
-    # Информация о продукте
-    reviews_count = run_async(load_reviews_count(selected_product.id))
-    st.info(f"📊 Продукт: **{selected_product.name}** | Отзывов: **{reviews_count}**")
+    selected_label = st.selectbox("Выберите продукт", list(choice_map.keys()))
+    selected_product = choice_map[selected_label]
+
+    reviews_count = count_by_product_id.get(selected_product.id, 0)
+    if reviews_count == 0 and selected_product.id is not None:
+        reviews_count = run_async(load_reviews_count(selected_product.id))
 
     if reviews_count == 0:
         st.warning("У этого продукта нет отзывов. Суммаризация невозможна.")
@@ -222,10 +222,9 @@ try:
                 st.markdown("---")
                 st.markdown("### 🔑 Ключевые фразы")
 
-                # Разделяем фразы по тональности
-                positive_phrases = [kp for kp in summary.key_phrases if kp.sentiment == "positive"]
-                negative_phrases = [kp for kp in summary.key_phrases if kp.sentiment == "negative"]
-                neutral_phrases = [kp for kp in summary.key_phrases if kp.sentiment == "neutral"]
+                positive_phrases, negative_phrases, neutral_phrases, other_phrases = (
+                    bucket_key_phrases(summary.key_phrases)
+                )
 
                 if positive_phrases or negative_phrases or neutral_phrases:
                     phrase_cols = st.columns(3)
@@ -269,26 +268,34 @@ try:
                                     unsafe_allow_html=True,
                                 )
 
-                    # Полная таблица в expander
-                    with st.expander("📊 Полная таблица ключевых фраз"):
-                        phrases_data = []
-                        for kp in summary.key_phrases:
-                            sentiment_emoji = {
-                                "positive": "🟢",
-                                "negative": "🔴",
-                                "neutral": "⚪",
-                            }.get(kp.sentiment, "⚪")
-
-                            phrases_data.append(
-                                {
-                                    "Фраза": kp.phrase,
-                                    "Тональность": f"{sentiment_emoji} {kp.sentiment}",
-                                    "Упоминаний": kp.count,
-                                    "Доля": f"{kp.share * 100:.1f}%" if kp.share else "-",
-                                }
+                if other_phrases:
+                    with st.expander("Другие значения тональности"):
+                        for kp in sorted(other_phrases, key=lambda x: x.count, reverse=True):
+                            share_text = f" ({kp.share * 100:.1f}%)" if kp.share else ""
+                            st.markdown(
+                                f"• **{kp.phrase}** — `{kp.sentiment}` ({kp.count}{share_text})"
                             )
 
-                        st.dataframe(phrases_data, use_container_width=True, hide_index=True)
+                with st.expander("📊 Полная таблица ключевых фраз"):
+                    phrases_data = []
+                    for kp in summary.key_phrases:
+                        raw = kp.sentiment
+                        sentiment_emoji = {
+                            "positive": "🟢",
+                            "negative": "🔴",
+                            "neutral": "⚪",
+                        }.get((raw or "").strip().lower(), "❔")
+
+                        phrases_data.append(
+                            {
+                                "Фраза": kp.phrase,
+                                "Тональность": f"{sentiment_emoji} {raw}",
+                                "Упоминаний": kp.count,
+                                "Доля": f"{kp.share * 100:.1f}%" if kp.share else "-",
+                            }
+                        )
+
+                    st.dataframe(phrases_data, use_container_width=True, hide_index=True)
 
         except ValueError as e:
             st.error(f"Ошибка: {e}")

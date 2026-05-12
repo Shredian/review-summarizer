@@ -7,22 +7,11 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-st.title("📝 Review Summarizer")
-st.markdown("""
-Добро пожаловать в сервис суммаризации отзывов!
+st.title("Review Summarizer")
+st.markdown(
+    """
+**Разделы:** Products · Product Reviews · Summarization · History · Aspect Evidence Insights · Review suggestions · Evaluation metrics.
 
-### Возможности:
-
-- **Products** — просмотр списка продуктов и количества отзывов
-- **Product Reviews** — просмотр отзывов конкретного продукта
-- **Summarization** — генерация суммаризации отзывов
-- **History** — история суммаризаций
-- **Review suggestions** — проверка контекстных подсказок при написании отзыва (prepare / suggest / feedback)
-- **Evaluation metrics** — быстрый прогон метрик benchmark (без CLI)
-
----
-
-Выберите страницу в боковом меню слева.
-""")
-
-st.sidebar.success("Выберите страницу выше")
+Выберите страницу в боковом меню.
+"""
+)

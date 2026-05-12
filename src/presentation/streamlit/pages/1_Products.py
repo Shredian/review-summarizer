@@ -10,9 +10,10 @@ sys.path.append(str(root_path))
 
 from src.container import Container
 from src.presentation.streamlit.utils.async_utils import run_async
+from src.presentation.streamlit.utils.product_choices import build_product_choice_map
 
 
-async def load_products(limit: int = 100, offset: int = 0):
+async def load_products_page(limit: int, offset: int):
     app = Container.product_application()
     return await app.list_with_reviews_count(limit=limit, offset=offset)
 
@@ -25,89 +26,96 @@ async def get_products_count():
 st.set_page_config(page_title="Products", page_icon="📦", layout="wide")
 
 st.title("📦 Продукты")
-st.markdown("Список всех продуктов с количеством отзывов")
 
-# Фильтры и пагинация
-col1, col2 = st.columns([3, 1])
+col_f1, col_f2, col_f3, col_f4 = st.columns([2, 1, 1, 1])
+with col_f1:
+    search_query = st.text_input("Поиск по названию", placeholder="Часть названия…")
+with col_f2:
+    page_size = st.selectbox("На странице", [10, 25, 50, 100], index=1)
+with col_f3:
+    sort_by = st.selectbox(
+        "Сортировка",
+        ["По названию", "По отзывам ↓", "По отзывам ↑", "По дате создания ↓"],
+    )
+with col_f4:
+    min_reviews = st.number_input("Мин. отзывов", min_value=0, value=0, step=1)
 
-with col1:
-    search_query = st.text_input("🔍 Поиск по названию", placeholder="Введите название продукта...")
-
-with col2:
-    page_size = st.selectbox("Записей на странице", [10, 25, 50, 100], index=1)
-
-# Получаем данные
 try:
     total_count = run_async(get_products_count())
-    products_with_counts = run_async(load_products(limit=page_size))
+    page_count = max(1, (total_count + page_size - 1) // page_size)
+    page_nr = st.number_input(
+        "Страница",
+        min_value=1,
+        max_value=max(1, page_count),
+        value=1,
+        step=1,
+    )
+    offset = (int(page_nr) - 1) * page_size
 
-    # Фильтрация по поисковому запросу (клиентская)
+    products_with_counts = run_async(load_products_page(limit=page_size, offset=offset))
+
+    filtered = [(p, c) for p, c in products_with_counts if c >= min_reviews]
     if search_query:
-        products_with_counts = [
-            (p, c) for p, c in products_with_counts if search_query.lower() in p.name.lower()
-        ]
+        q = search_query.lower()
+        filtered = [(p, c) for p, c in filtered if q in p.name.lower()]
 
-    st.markdown(f"**Всего продуктов:** {total_count}")
+    if sort_by == "По названию":
+        filtered.sort(key=lambda x: x[0].name.lower())
+    elif sort_by == "По отзывам ↓":
+        filtered.sort(key=lambda x: x[1], reverse=True)
+    elif sort_by == "По отзывам ↑":
+        filtered.sort(key=lambda x: x[1])
+    elif sort_by == "По дате создания ↓":
+        filtered.sort(key=lambda x: x[0].created_at or x[0].updated_at, reverse=True)
 
-    if products_with_counts:
-        # Формируем данные для таблицы
-        table_data = []
-        for product, reviews_count in products_with_counts:
-            table_data.append(
-                {
-                    "ID": str(product.id)[:8] + "...",
-                    "Название": product.name,
-                    "Описание": (product.description or "")[:100]
-                    + ("..." if product.description and len(product.description) > 100 else ""),
-                    "Отзывов": reviews_count,
-                    "Создан": product.created_at.strftime("%Y-%m-%d %H:%M")
-                    if product.created_at
-                    else "-",
-                }
-            )
+    st.caption(
+        f"Всего продуктов в базе: **{total_count}**. Поиск и фильтры ниже действуют в пределах загруженной страницы ({page_size} записей)."
+    )
 
-        st.dataframe(
-            table_data,
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "ID": st.column_config.TextColumn("ID", width="small"),
-                "Название": st.column_config.TextColumn("Название", width="medium"),
-                "Описание": st.column_config.TextColumn("Описание", width="large"),
-                "Отзывов": st.column_config.NumberColumn("Отзывов", width="small"),
-                "Создан": st.column_config.TextColumn("Создан", width="small"),
-            },
-        )
+    main_col, side_col = st.columns([1.6, 1], gap="large")
 
-        # Детальный просмотр продукта
-        st.markdown("---")
-        st.subheader("Детали продукта")
-
-        product_names = [p.name for p, _ in products_with_counts]
-        selected_name = st.selectbox("Выберите продукт для просмотра", product_names)
-
-        if selected_name:
-            selected_product = next(
-                (p for p, _ in products_with_counts if p.name == selected_name), None
-            )
-            if selected_product:
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.markdown(f"**ID:** `{selected_product.id}`")
-                    st.markdown(f"**Название:** {selected_product.name}")
-                with col2:
-                    st.markdown(f"**Создан:** {selected_product.created_at}")
-                    st.markdown(f"**Обновлён:** {selected_product.updated_at}")
-
-                if selected_product.description:
-                    st.markdown("**Описание:**")
-                    st.text(selected_product.description)
-
-                st.info(
-                    "💡 Перейдите на страницу **Product Reviews**, чтобы посмотреть отзывы этого продукта"
+    with main_col:
+        if filtered:
+            table_data = []
+            for product, reviews_count in filtered:
+                desc = product.description or ""
+                short = (desc[:120] + "…") if len(desc) > 120 else desc
+                table_data.append(
+                    {
+                        "Название": product.name,
+                        "Отзывов": reviews_count,
+                        "Описание": short or "—",
+                    }
                 )
-    else:
-        st.info("Продукты не найдены")
+            st.dataframe(
+                table_data,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Название": st.column_config.TextColumn("Название", width="medium"),
+                    "Отзывов": st.column_config.NumberColumn("Отзывов", width="small"),
+                    "Описание": st.column_config.TextColumn("Описание", width="large"),
+                },
+            )
+        else:
+            st.info("На этой странице нет записей по фильтрам.")
+
+    with side_col:
+        st.subheader("Подробнее")
+        if filtered:
+            detail_map = build_product_choice_map(filtered)
+            detail_labels = list(detail_map.keys())
+            selected_label = st.selectbox("Продукт", detail_labels)
+            sel = detail_map[selected_label]
+            st.markdown(f"**{sel.name}**")
+            st.caption(f"ID: `{sel.id}`")
+            st.caption(f"Создан: {sel.created_at}")
+            st.caption(f"Обновлён: {sel.updated_at}")
+            if sel.description:
+                st.markdown(sel.description)
+            st.page_link("pages/2_Product_Reviews.py", label="Открыть отзывы →")
+        else:
+            st.caption("Выберите страницу с данными.")
 
 except Exception as e:
     st.error(f"Ошибка при загрузке данных: {e}")

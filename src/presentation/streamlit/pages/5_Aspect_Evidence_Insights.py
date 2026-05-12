@@ -29,13 +29,12 @@ from src.presentation.streamlit.aspect_evidence_insights_data import (
     sentiment_section_pivot_for_chart,
 )
 from src.presentation.streamlit.utils.async_utils import run_async
+from src.presentation.streamlit.utils.product_choices import (
+    build_product_choice_map,
+    load_products_with_review_counts,
+)
 
 TARGET_METHOD = "aspect_evidence_guided_v1"
-
-
-async def load_products():
-    app = Container.product_application()
-    return await app.list(limit=1000)
 
 
 async def load_method_summaries(product_id: UUID):
@@ -60,14 +59,14 @@ st.title("🧭 Aspect Evidence Guided")
 st.caption("Интерактивный дашборд артефактов и метрик для метода aspect_evidence_guided_v1")
 
 try:
-    products = run_async(load_products())
-    if not products:
+    pairs = run_async(load_products_with_review_counts(limit=1000, offset=0))
+    if not pairs:
         st.warning("Нет продуктов в базе данных")
         st.stop()
 
-    product_options = {product.name: product for product in products}
-    selected_name = st.selectbox("Продукт", list(product_options.keys()))
-    selected_product = product_options[selected_name]
+    choice_map = build_product_choice_map(pairs)
+    selected_label = st.selectbox("Продукт", list(choice_map.keys()))
+    selected_product = choice_map[selected_label]
 
     summaries = run_async(load_method_summaries(selected_product.id))
     if not summaries:

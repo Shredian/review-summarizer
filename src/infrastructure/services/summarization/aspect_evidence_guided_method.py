@@ -219,6 +219,7 @@ class AspectEvidenceGuidedSummarizationMethod(BaseSummarizationMethod):
             product_id=product_id,
             reviews=reviews,
             params=parsed_params,
+            plan=plan,
             final_output=final_output,
             scored_aspects=scored_aspects,
             diagnostics={
@@ -268,12 +269,33 @@ class AspectEvidenceGuidedSummarizationMethod(BaseSummarizationMethod):
         async with self._pending_lock:
             self._pending_artifacts[summary_id] = pending
 
+    @staticmethod
+    def _key_phrase_sentiment(plan: ContentPlan, aspect: AspectStats) -> str:
+        for pa in plan.selected_aspects:
+            if pa.aspect_name == aspect.aspect_name:
+                if pa.target_polarity == "positive":
+                    return "positive"
+                if pa.target_polarity == "negative":
+                    return "negative"
+                return "neutral"
+        pos = aspect.positive_mentions
+        neg = aspect.negative_mentions
+        mix = aspect.mixed_mentions
+        if mix > 0 and mix >= pos and mix >= neg:
+            return "neutral"
+        if pos > neg:
+            return "positive"
+        if neg > pos:
+            return "negative"
+        return "neutral"
+
     def _build_summary(
         self,
         summary_id: UUID,
         product_id: str,
         reviews: list[Review],
         params: AspectEvidenceGuidedParams,
+        plan: ContentPlan,
         final_output,
         scored_aspects: list[AspectStats],
         diagnostics: dict,
@@ -283,7 +305,7 @@ class AspectEvidenceGuidedSummarizationMethod(BaseSummarizationMethod):
         key_phrases = [
             KeyPhraseItem(
                 phrase=aspect.aspect_name,
-                sentiment="neutral",
+                sentiment=self._key_phrase_sentiment(plan, aspect),
                 count=aspect.total_mentions,
                 share=round(aspect.prevalence_score, 3),
             )

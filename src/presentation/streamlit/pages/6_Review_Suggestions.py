@@ -19,6 +19,10 @@ from src.domain.review_suggestions.source_hash import (
     compute_user_source_hash,
 )
 from src.presentation.streamlit.utils.async_utils import run_async
+from src.presentation.streamlit.utils.product_choices import (
+    build_product_choice_map,
+    load_products_with_review_counts,
+)
 from src.utils.config import CONFIG
 
 
@@ -37,11 +41,6 @@ def _apply_suggestion_to_draft(draft: str, cursor: int, spec: dict) -> str:
     if mode == "replace_suffix":
         return before + ins + draft[cur:]
     return before + ins + draft[cur:]
-
-
-async def _load_products(limit: int = 200, offset: int = 0):
-    app = Container.product_application()
-    return await app.list_with_reviews_count(limit=limit, offset=offset)
 
 
 async def _prepare(product_id: UUID, user_id: UUID | None, rating: float | None, field: str):
@@ -137,21 +136,15 @@ st.markdown(
 )
 
 with st.sidebar:
-    st.subheader("Ссылки")
-    st.markdown(f"[Документация OpenAPI]({CONFIG.public_api_base_url.rstrip('/')}/docs)")
-    st.caption(
-        "В Docker при открытии UI с хоста укажите порты: Streamlit — :8501, API — :8000. "
-        "Переменная `APP_PUBLIC_API_BASE_URL` задаёт ссылку на API в браузере."
-    )
-    st.subheader("Worker")
-    st.info(
-        "Чтобы профили товара и пользователя стали **ready** с богатыми фразами, "
-        "должен работать сервис **`review_suggestions_worker`** в `docker-compose` "
-        "(первый прогон может занять несколько минут из‑за загрузки моделей)."
-    )
-    st.caption(
-        "Логи воркера (диагностика):  \n`docker logs review-summarizer-review-suggestions-worker --tail 80`"
-    )
+    st.markdown(f"[OpenAPI]({CONFIG.public_api_base_url.rstrip('/')}/docs)")
+    with st.expander("Справка"):
+        st.caption(
+            "Docker: Streamlit :8501, API :8000. Переменная APP_PUBLIC_API_BASE_URL — URL API в браузере."
+        )
+        st.caption(
+            "Богатые подсказки требуют review_suggestions_worker в compose; первый прогон может быть долгим."
+        )
+        st.caption("Логи: docker logs review-summarizer-review-suggestions-worker --tail 80")
 
 if "rs_product_id" not in st.session_state:
     st.session_state.rs_product_id = None
@@ -175,7 +168,7 @@ if "_rs_apply_suggestion" in st.session_state:
     st.session_state.rs_draft = _apply_suggestion_to_draft(st.session_state.rs_draft, _cur, _spec)
 
 try:
-    products_with_counts = run_async(_load_products())
+    products_with_counts = run_async(load_products_with_review_counts(limit=200, offset=0))
 except Exception as e:
     st.error(f"Не удалось загрузить продукты: {e}")
     st.stop()
@@ -186,7 +179,7 @@ if not products_with_counts:
 
 _sess_ctx = bool(st.session_state.rs_context_id)
 with st.expander("⚙️ Параметры сессии и **prepare**", expanded=not _sess_ctx):
-    product_choices = {f"{p.name} ({cnt} отз.)": p for p, cnt in products_with_counts}
+    product_choices = build_product_choice_map(products_with_counts)
     selected_label = st.selectbox("Продукт", options=list(product_choices.keys()))
     product = product_choices[selected_label]
     st.session_state.rs_product_id = product.id
@@ -303,12 +296,6 @@ with st.expander("⚙️ Параметры сессии и **prepare**", expand
 
 ctx_id = st.session_state.rs_context_id
 
-st.markdown("### Демонстрация")
-st.caption(
-    "Подсказки запрашиваются так, как будто каретка **в конце** текста. "
-    "Вставка учитывает режим с сервера (**replace** заменяет недописанное слово, **append** дописывает после курсора)."
-)
-
 demo_left, demo_right = st.columns([1.2, 1], gap="large")
 with demo_left:
     draft = st.text_area(
@@ -394,7 +381,7 @@ with demo_right:
                             st.error(str(e))
             st.divider()
 
-    with st.expander("Отладка: сырой ответ API"):
+    with st.expander("Сырой ответ API"):
         if suggestions:
             st.json(
                 {
@@ -405,8 +392,3 @@ with demo_right:
         else:
             st.caption("Пока нет последнего ответа suggest.")
 
-st.markdown("---")
-st.caption(
-    "События пишутся в таблицу `review_suggestion_events`. "
-    "Миграции Alembic выполняются при старте контейнеров (`alembic upgrade head` в entrypoint)."
-)
