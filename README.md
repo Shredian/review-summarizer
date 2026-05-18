@@ -96,7 +96,6 @@ pip install -r requirements.txt
 | Presentation | [src/presentation/](src/presentation/) | FastAPI, Streamlit |
 | Workers | [src/workers/](src/workers/) | Фоновый воркер профилей подсказок |
 
-Дополнительные материалы для разработчиков: [docs/README.md](docs/README.md).
 
 ## Методы суммаризации
 
